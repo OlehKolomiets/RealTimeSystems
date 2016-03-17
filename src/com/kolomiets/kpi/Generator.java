@@ -1,9 +1,7 @@
 package com.kolomiets.kpi;
 
-import javafx.util.Pair;
-
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 /**
@@ -25,21 +23,39 @@ public class Generator {
         this.N = N;
     }
 
-    public ArrayList<Pair<Double, Double>> generate() {
-        ArrayList<Pair<Double, Double>> result = new ArrayList<>();
+    public Map<Double, Double> generate() {
+        HashMap<Double, Double> result = new HashMap<>();
+        double[][] genVal = new double[m][3];
+        double A;
+        double phi;
+        double frequency;
+        for (int i = 0; i < m; i++) {
+            A = rand.nextDouble();
+            phi = 2*Math.PI*rand.nextDouble();
+            frequency = i*maxFrequency/m + maxFrequency/m*rand.nextDouble();
+            genVal[i][0] = A;
+            genVal[i][1] = phi;
+            genVal[i][2] = frequency;
+        }
+
         double t = 0;
         for (int i = 0; i < N; i++) {
             double x = 0;
             for (int j = 0; j < m; j++) {
-                double A = rand.nextDouble();
-                double phi = rand.nextDouble();
-                double frequency = j*maxFrequency/m + maxFrequency/m*rand.nextDouble();
-                x += A*Math.sin(frequency*t + phi);
+                A = rand.nextDouble();
+                phi = 2*Math.PI*rand.nextDouble();
+                frequency = j*maxFrequency/m + maxFrequency/m*rand.nextDouble();
+//                x += A*Math.sin(frequency*t + phi);
+
+                x += genVal[j][0]*Math.sin(genVal[j][2]*t + genVal[j][1]);
             }
-            result.add(new Pair<>(t, x));
+            result.put(t, x);
             t += delta;
         }
         return result;
     }
 
+    public double getDelta() {
+        return delta;
+    }
 }
