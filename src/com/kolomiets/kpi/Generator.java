@@ -49,6 +49,7 @@ public class Generator {
 
                 x += genVal[j][0]*Math.sin(genVal[j][2]*t + genVal[j][1]);
             }
+
             result.put(t, x);
             t += delta;
         }

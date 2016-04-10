@@ -8,6 +8,10 @@ import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
 import javax.swing.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
@@ -25,11 +29,14 @@ public class MainFrame extends JFrame {
     private JLabel varianceLable;
     private JTabbedPane tabbedPane1;
     private JPanel correlationChart;
+    private JPanel discreteFourierTransformPanel;
 
     private Map<Double, Double> functionX;
     private Map<Double,Double> functionY;
     private Map<Double,Double> selfCorrelationFunction;
     private Map<Double,Double> correlationFunction;
+    private Map<Double,Double> discreteFourierTransform;
+    private Map<Double, Double> fastDiscreteFourierTransform;
     private Generator generator;
     private Analyzer analyzer;
     private double mathExpectation;
@@ -40,7 +47,6 @@ public class MainFrame extends JFrame {
 
         expectationTextField.setText(String.valueOf(mathExpectation));
         varianceTextField.setText(String.valueOf(variance));
-
         add(rootPanel);
 
         setSize(640, 480);
@@ -69,6 +75,19 @@ public class MainFrame extends JFrame {
         String yAxisLabel = "Y";
 
         XYDataset dataset = createCorrelationDataSet();
+
+        JFreeChart chart = ChartFactory.createXYLineChart(chartTitle,
+                xAxisLabel, yAxisLabel, dataset);
+
+        return new ChartPanel(chart);
+    }
+
+    private JPanel createFourierTransformChartPanel() {
+        String chartTitle = "Discrete Fourier Transform";
+        String xAxisLabel = "X";
+        String yAxisLabel = "Y";
+
+        XYDataset dataset = createFurierTramcformDataset();
 
         JFreeChart chart = ChartFactory.createXYLineChart(chartTitle,
                 xAxisLabel, yAxisLabel, dataset);
@@ -127,24 +146,54 @@ public class MainFrame extends JFrame {
         }
         seriesCollection.addSeries(series);
         seriesCollection.addSeries(series2);
+
+        return seriesCollection;
+    }
+
+    private XYDataset createFurierTramcformDataset() {
+        XYSeriesCollection seriesCollection = new XYSeriesCollection();
+        XYSeries series = new XYSeries("Discrete Fourier Transform");
+        XYSeries series1 = new XYSeries("Fast discrete Fourier Transform");
+        long time = System.nanoTime();
+        discreteFourierTransform = analyzer.discreteFourierTransform(functionX);
+        long discreteTransf =  System.nanoTime() - time;
+        time = System.nanoTime();
+        fastDiscreteFourierTransform = analyzer.fastDiscreteFourierTransform(functionX);
+        long fastTransf = System.nanoTime() - time;
+        System.out.println("discreteTransf time: " + discreteTransf);
+        System.out.println("fastTrsnsf time " + fastTransf);
+
+        Set<Double> keys = discreteFourierTransform.keySet();
+        for (Double key : keys) {
+            series.add(key, discreteFourierTransform.get(key));
+        }
+
+        keys = fastDiscreteFourierTransform.keySet();
+        for (Double key : keys) {
+            series1.add(key, fastDiscreteFourierTransform.get(key));
+        }
+
+        seriesCollection.addSeries(series);
+        seriesCollection.addSeries(series1);
         return seriesCollection;
     }
 
     private void createUIComponents() {
         chartPanel = createChartPanel();
         correlationChart = createCorrelationChartPanel();
+        discreteFourierTransformPanel = createFourierTransformChartPanel();
     }
 
     private void calculateValues() {
         generator = new Generator(8, 2000, 256);
-        analyzer = new Analyzer();
         long start = System.nanoTime();
         functionX = generator.generate();
+        analyzer = new Analyzer();
         long generatinTime = System.nanoTime() - start;
         start = System.nanoTime();
         mathExpectation = analyzer.calculateMathExpectation(functionX);
         long expectionCalculatingTime = System.nanoTime() - start;
-//        start = System.nanoTime();
+        start = System.nanoTime();
         variance = analyzer.calculateVariance(functionX, mathExpectation);
         long varianceCalculatingtime = System.nanoTime() - start;
 
@@ -157,5 +206,22 @@ public class MainFrame extends JFrame {
         double mY = analyzer.calculateMathExpectation(functionY);
         correlationFunction = analyzer.calculateCorrelation(functionX, functionY, mathExpectation, mY, generator.getDelta());
         System.out.println("correlation calculated");
+
+        // if file doesnt exists, then create it
+        File file = new File("file.txt");
+
+
+        try {
+            if (!file.exists()) {
+                file.createNewFile();
+            }
+            FileWriter fw = new FileWriter(file.getAbsoluteFile());
+            BufferedWriter bw = new BufferedWriter(fw);
+            fw = new FileWriter(file.getAbsoluteFile());
+            bw.write("" + varianceCalculatingtime);
+            bw.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
